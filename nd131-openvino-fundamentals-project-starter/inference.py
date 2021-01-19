@@ -45,11 +45,11 @@ class Network:
 
     def load_model(self, xml_model, device='CPU', cpu_ext=None):
         ### TODO: Load the model ###
-        print('* load model *')
+#        print('* load model *')
         model_dir_path = os.path.splitext(xml_model)[0]
         bin_model = model_dir_path + '.bin'
-        print(' - xml model: %s' % (xml_model))
-        print(' - bin model: %s' % (bin_model))
+#        print(' - xml model: %s' % (xml_model))
+#        print(' - bin model: %s' % (bin_model))
 
         # Initialize the Inference Engine
         self.infer_engine_ = IECore()
@@ -64,7 +64,7 @@ class Network:
         ### TODO: Check for supported layers ###
         layers_map = self.infer_engine_.query_network(self.network_, "CPU")
 
-        print('* layers info *')
+#        print('* layers info *')
         layer_num = 0
         unsupport_layers = []
         for layer, hw in layers_map.items():
@@ -76,7 +76,7 @@ class Network:
                 pass
             layer_num += 1
 
-        print(' - unsupported layers: %s' % unsupport_layers)
+#        print(' - unsupported layers: %s' % unsupport_layers)
 
         ### TODO: Return the loaded inference plugin ###
         self.exec_network_ = self.infer_engine_.load_network(self.network_, device)
@@ -85,9 +85,9 @@ class Network:
         self.input_blob_ = next(iter(self.network_.inputs))
         self.output_blob_ = next(iter(self.network_.outputs))
 
-        print('* blob info *')
-        print(' - input : %s' % self.input_blob_)
-        print(' - output: %s' % self.output_blob_)
+#        print('* blob info *')
+#        print(' - input : %s' % self.input_blob_)
+#        print(' - output: %s' % self.output_blob_)
 
         return
 
@@ -113,9 +113,9 @@ class Network:
     def get_output(self):
         ### TODO: Extract and return the output results
         infer_output = self.exec_network_.requests[0].outputs[self.output_blob_]
-        print('  - extracting DNN output from blob (%s)' % self.output_blob_)
+#        print('  - extracting DNN output from blob (%s)' % self.output_blob_)
         # DNN output  [1, 1, N, 7], [image_id, label, conf, x_min, y_min, x_max, y_max]
-        print('  - output shape: {}'.format(infer_output.shape))
+#        print('  - output shape: {}'.format(infer_output.shape))
 
         ### Note: You may need to update the function parameters. ###
         return infer_output
