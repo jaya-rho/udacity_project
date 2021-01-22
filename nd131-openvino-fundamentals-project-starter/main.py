@@ -50,10 +50,10 @@ if platform == "linux" or platform == "linux2":
     CODEC = 0x00000021
 elif platform == "darwin":
     CPU_EXTENSION = "/opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension.dylib"
- #   CODEC = cv2.VideoWriter_fourcc('M','J','P','G')
+ #   CODEC = cv2.VideoWriter_fourcc('M','J','P','G')  # it does not work on MAC
     CODEC = cv2.VideoWriter_fourcc('F', 'M', 'P', '4')
 else:
-#    print("Unsupported OS.")
+    print("Unsupported OS.")
     exit(1)
 
 
@@ -85,14 +85,20 @@ def build_argparser():
 
 
 def connect_mqtt():
-    ### TODO: Connect to the MQTT client ###
+    """ Connect to the MQTT client """
     client = mqtt.Client()
     client.connect(MQTT_HOST, MQTT_PORT, MQTT_KEEPALIVE_INTERVAL)
 
     return client
 
 
-def filter_output(infer_output):
+def extract_valid_object(infer_output):
+    """
+    Extract the valid object (person) from the DNN inference output
+
+    :param image: an input image
+    :return valid_obj: a list consisting of the valid objects' info
+    """
 
     valid_obj = []
 
@@ -108,8 +114,7 @@ def filter_output(infer_output):
                 obj_dict['x_max'] = h[5]
                 obj_dict['y_max'] = h[6]
 
-                # only save the valid object
-                # TODO: filter by confidence
+                # append only the valid object
                 if not all(v == 0 for v in obj_dict.values()):
                     valid_obj.append(obj_dict)
 
@@ -118,11 +123,24 @@ def filter_output(infer_output):
     return valid_obj
 
 def draw_boundingbox(image, infer_output, image_width, image_height, conf_thresh):
+    """
+    compute the coordinate of bounding box from DNN inference output
+    filter the valid object by the confidence threshold
+
+    :param image: an input image
+    :param infer_output: the inference results
+    :param image_width: a width of an input image
+    :param image_height: a height of an input image
+    :param conf_thresh: a confidence threshold
+    :return out_image: an output image which a bounding box is drawn
+    :return valid_obj_num: the number of valid detected object
+    """
 
     out_image = image.copy()
 #    print('  - input image: [width] %d, [height] %d' % (image.shape[1], image.shape[0]))
 
     def check_valid_range(val, max_val):
+        """ check the coordinate of bbox is inside of an image"""
         if val < 0:
             val = 0
         elif val > max_val:
@@ -136,7 +154,7 @@ def draw_boundingbox(image, infer_output, image_width, image_height, conf_thresh
 
     for obj_info in infer_output:
         conf = obj_info['conf']
-        # filter by confidence
+        # filter by the confidence
         if conf >= conf_thresh:
             # calculate bbox coordinate
             xmin = int(obj_info['x_min'] * image_width)
@@ -157,23 +175,11 @@ def draw_boundingbox(image, infer_output, image_width, image_height, conf_thresh
             valid_obj_bbox.append((xmin, ymin, xmax, ymax))
 #            print('  - draw bbox [%d, %d, %d, %d] confidence: %f' % (xmin,ymin,xmax,ymax,conf))
 
-    # save resulting image
-#    cv2.imwrite('{}_output.png'.format(obj_info['image_id']), out_image)
-
     # assert if one more people are detected per frame
     if valid_obj_num > 1:
         assert False, 'people counter > 1 in one frame'
 
     return out_image, valid_obj_num
-
-
-def add_infer_time(image, infer_time_ms):
-    # add text
-    loc = (10, 20)
-    cv2.putText(image, "inference time(without post-process): %.2fms" % (infer_time_ms), loc, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (209, 130, 0, 255), 1)
-#    print('  - inference time: %.2fms' % (infer_time_ms))
-
-    return image
 
 
 def infer_on_stream(args, client):
@@ -185,20 +191,32 @@ def infer_on_stream(args, client):
     :param client: MQTT client
     :return: None
     """
-    # Initialise the classgg
+    # Initialize the network
     infer_network = Network()
     # Set Probability threshold for detections
     prob_threshold = args.prob_threshold
 
-    ### TODO: Load the model through `infer_network` ###
-    # load_model(self, xml_model, device='CPU', cpu_ext=None)
+    # Load the model through `infer_network`
     infer_network.load_model(args.model, args.device, args.cpu_extension)
 
-    ### TODO: Handle the inpgut stream ###
+    # Handle the input stream
+    # expand the tilde
+    input_fpath = os.path.expanduser(args.input)
+    f_name, f_extn = os.path.splitext(input_fpath)
+
+    is_image_input = False
+
+    # add the file extensions as you like
+    if f_extn in ['.mp4', '.avi', '.mpeg']:
+        pass
+    elif f_extn in ['.png', '.jpg', 'jpeg']:
+        is_image_input = True
+    else:
+        assert False, f'unsupported input data extension: {f_extn}'
+
     # Get and open video capture
-    # TODO: support for images
-    cap = cv2.VideoCapture(args.input)
-    cap.open(args.input)
+    cap = cv2.VideoCapture(input_fpath)
+    cap.open(input_fpath)
     # [1, 3, 320, 544] (BCHW)
     net_input_dims = infer_network.get_input_shape()
 #    print('* DNN input dims: {}'.format(net_input_dims))
@@ -211,7 +229,7 @@ def infer_on_stream(args, client):
 #    print('platform: {}'.format(platform))
     out_video = cv2.VideoWriter('out_result.mp4', CODEC, 30, (width, height))
 
-    ### TODO: Loop until stream is over ###
+    # Loop until stream is over
     frame_num = 0
     last_valid_pers_num = 0
     total_valid_pers_num = 0
@@ -219,14 +237,13 @@ def infer_on_stream(args, client):
     mis_detect_cnt = [False]*3
 
     while cap.isOpened():
-        ### TODO: Read from the video capture ###
         # Read the next frame
         flag, frame = cap.read()
         if not flag:
             break
         key_pressed = cv2.waitKey(60)
 
-        ### TODO: Pre-processg the image as needed ###
+        # Pre-processing the image
         # cv2.resize(src, dsize=(width, height))
         p_frame = cv2.resize(frame, (net_input_dims[3], net_input_dims[2]))
         p_frame = p_frame.transpose((2,0,1))
@@ -235,26 +252,26 @@ def infer_on_stream(args, client):
 #        print('+ frame %d' % (frame_num))
 #        print('  - shape: {}'.format(p_frame.shape))
 
-        ### TODO: Start asynchronous inference for specified request ###
+        # Start asynchronous inference for specified request
         infer_start = time.time()
         infer_network.exec_net(p_frame)
 
-        ### TODO: Wait for the result ###
+        # Wait for the result
         if infer_network.wait() == 0: # when the inference per frame finishes
             infer_stop = time.time()
-            infer_time_ms = (infer_stop-infer_start)*1e3
+            infer_time_ms = (infer_stop-infer_start) * 1e3
 
-            ### TODO: Get the results of the inference request ###
+            # Get the results of the inference request
             infer_result = infer_network.get_output()
 
-            ### TODO: Extract any desired stats from the results ###
-            valid_object = filter_output(infer_result)
+            # Filter the valid object
+            valid_object = extract_valid_object(infer_result)
 
             # draw bounding box of detected person on the image
             out_frame, valid_pers_num = draw_boundingbox(frame, valid_object, width, height, prob_threshold)
 
             def add_text_on_image(image, insert_text=None, loc=(10,10), tsize=0.4, tcolr=(209, 130, 0, 255), tbold=1):
-                # add text
+                # add a text
                 cv2.putText(image, insert_text, loc, cv2.FONT_HERSHEY_SIMPLEX, tsize, tcolr, tbold)
 #                print('  - [add the text on image] %s' % (insert_text))
                 return
@@ -267,16 +284,10 @@ def infer_on_stream(args, client):
                 total_valid_pers_num += (valid_pers_num - last_valid_pers_num)
             elif valid_pers_num < last_valid_pers_num:
                 # the number of detected people decreases
-                mis_detect_cnt = [True for res in mis_detect_cnt if res == False]
-                if all(mis_detect_cnt):
-#                    print('!! person disappears !!')
-                    mis_detect_cnt = [False] * 3
-
-                if emerge_time <= 0:
-                    assert False, 'a person emerged time is not valid ({})'.format(emerge_time)
+                assert emerge_time >= 0, 'a person emerged time is not valid ({})'.format(emerge_time)
                 duration_time_sec = time.time() - emerge_time
             else:
-                # the number of detected people not changed
+                # the number of detected people not changed, do nothing
                 pass
 
 #            print('  - result: {}'.format(mis_detect_cnt))
@@ -290,27 +301,26 @@ def infer_on_stream(args, client):
             # add inference time on the image
             insert_text = "inference time(without post-process): %.2fms" % (infer_time_ms)
             add_text_on_image(out_frame, insert_text, (10,20))
-#            add_infer_time(out_frame, infer_time_ms)
-            # write into a movie
-            out_video.write(out_frame)
 
-            ### TODO: Calculate and send relevant information on ###
-            ### current_count, total_count and duration to the MQTT server ###
-#            print('  - people count in current frame: %d' % (valid_pers_num))
+            if is_image_input:
+                path = '.'
+                f_name = f'output_{frame_num}{f_extn}'
+                cv2.imwrite(os.path.join(path, f_name), out_frame)
+            else:
+                # write into a movie
+                out_video.write(out_frame)
 
-            ### Topic "person": keys of "count" and "total" ###
+            # Send current_count, total_count and duration to the MQTT server ###
+            # Topic "person": keys of "count" and "total"
             client.publish("person", json.dumps({"count": valid_pers_num}))
             client.publish("person", json.dumps({"total": total_valid_pers_num}))
 
-            ### Topic "person/duration": key of "duration" ###
+            # Topic "person/duration": key of "duration"
             client.publish("person/duration", json.dumps({"duration": duration_time_sec}))
 
-        ### TODO: Send the frame to the FFMPEG server ###
-#        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        # Send the frame to the FFMPEG server
         sys.stdout.buffer.write(out_frame)
         sys.stdout.flush()
-
-        ### TODO: Write an output image if `single_image_mode` ###
 
         # Break if escape key pressed
         if key_pressed == 27:

@@ -35,7 +35,6 @@ class Network:
     """
 
     def __init__(self):
-        ### TODO: Initialize any class variables desired ###
         self.infer_engine_ = None
         self.network_ = None
         self.exec_network_ = None
@@ -44,7 +43,7 @@ class Network:
 
 
     def load_model(self, xml_model, device='CPU', cpu_ext=None):
-        ### TODO: Load the model ###
+        """ Load the model """
 #        print('* load model *')
         model_dir_path = os.path.splitext(xml_model)[0]
         bin_model = model_dir_path + '.bin'
@@ -61,7 +60,7 @@ class Network:
         # Read the IR as a IENetwork
         self.network_ = self.infer_engine_.read_network(model=xml_model, weights=bin_model)
 
-        ### TODO: Check for supported layers ###
+        # Check for supported layers ###
         layers_map = self.infer_engine_.query_network(self.network_, "CPU")
 
 #        print('* layers info *')
@@ -78,7 +77,7 @@ class Network:
 
 #        print(' - unsupported layers: %s' % unsupport_layers)
 
-        ### TODO: Return the loaded inference plugin ###
+        # Return the loaded inference plugin ###
         self.exec_network_ = self.infer_engine_.load_network(self.network_, device)
 
         ### Note: You may need to update the function parameters. ###
@@ -88,35 +87,27 @@ class Network:
 #        print('* blob info *')
 #        print(' - input : %s' % self.input_blob_)
 #        print(' - output: %s' % self.output_blob_)
-
         return
 
     def get_input_shape(self):
-        ### TODO: Return the shape of the input layer ###
+        """ Return the shape of the input layer """
         return self.network_.inputs[self.input_blob_].shape
 
     def exec_net(self, image):
-        ### TODO: Start an asynchronous request ###
+        """ Start an asynchronous request """
         self.exec_network_.start_async(request_id=0,inputs={self.input_blob_: image})
-
-        ### TODO: Return any necessary information ###
-        ### Note: You may need to update the function parameters. ###
         return
 
     def wait(self):
-        ### TODO: Wait for the request to be complete. ###
+        """ Wait for the request to be complete """
         infer_status = self.exec_network_.requests[0].wait(-1)
-        ### TODO: Return any necessary information ###
-        ### Note: You may need to update the function parameters. ###
         return infer_status
 
     def get_output(self):
-        ### TODO: Extract and return the output results
+        """ Extract and return the output results """
         infer_output = self.exec_network_.requests[0].outputs[self.output_blob_]
 #        print('  - extracting DNN output from blob (%s)' % self.output_blob_)
         # DNN output  [1, 1, N, 7], [image_id, label, conf, x_min, y_min, x_max, y_max]
 #        print('  - output shape: {}'.format(infer_output.shape))
-
-        ### Note: You may need to update the function parameters. ###
         return infer_output
 
