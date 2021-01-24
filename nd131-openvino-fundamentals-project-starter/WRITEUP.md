@@ -178,9 +178,8 @@ In investigating potential people counter models, I tried each of the following 
 - Model 1: `person-detection-retail-0013`
   - https://github.com/openvinotoolkit/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-retail-0013/description/person-detection-retail-0013.md
   - We do not have to convert to an Intermediate Representation (IR) since it is already converted when I downloaded from the server.
-  - 
-    | Model Name | Model Size [MB] | Average Precision [%] | Average Inference Time per Frame [ms] (※)| Total Count of People| Confidence Threshold|
-    | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+  - | Model Name | Model Size [MB] | Average Precision [%] | Average Inference Time per Frame [ms] (※)| Total Count of People| Confidence Threshold|
+    | --- | ---: | ---: | ---: | ---: | ---: | 
     | person-detection-0201 (FP32) | 3.2 MB | 88.62 % | 10.99 ms | 15 | 0.35 |
 
 - Model 2: `pedestrian-detection-adas-0002`
