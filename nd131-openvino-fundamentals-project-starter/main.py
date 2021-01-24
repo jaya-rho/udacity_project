@@ -240,6 +240,7 @@ def infer_on_stream(args, client):
     total_valid_pers_num = 0
     duration_time_sec = 0
     mis_detect_cnt = [False]*3
+    all_infer_time = []
 
     while cap.isOpened():
         # Read the next frame
@@ -306,6 +307,7 @@ def infer_on_stream(args, client):
             # add inference time on the image
             insert_text = "inference time(without post-process): %.2fms" % (infer_time_ms)
             add_text_on_image(out_frame, insert_text, (10,20))
+            all_infer_time.append(infer_time_ms)
 
             if is_image_input:
                 path = '.'
@@ -343,6 +345,9 @@ def infer_on_stream(args, client):
 
     # close the MTQQ server connection
     client.disconnect()
+
+    logger.info(f'* average inference time: {sum(all_infer_time)/frame_num} ms')
+    logger.info(f'* total count of people: {total_valid_pers_num}')
 
 
 def main():

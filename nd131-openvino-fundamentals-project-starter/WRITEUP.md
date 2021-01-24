@@ -2,30 +2,31 @@
 
 reporter: jaeyong.rho@woven-planet.global
 
-submission data: 2021/01/23
+submission date: 2021/01/23
 
 ## Custom Layers
 
-The process behind converting custom layers involves...
+Intel® OpenVINO™ toolkit supports many types of layers currently. However, there may be cases in which the supported layers do not match with the specific needs of a model. In this case, users can realize the specific functionality layer by implementing a custom layer.
 
-Some of the potential reasons for handling custom layers are...
+According to `Custom Layers Guide` page, the Model Optimizer searches the list of known layers for each layer contained in the input model topology before building the model's internal representation, optimizing the model, and producing the Intermediate Representation files. The Inference Engine loads the layers from the input model IR files into the specified device plugin, which will search a list of known layer implementations for the device. If your topology contains layers that are not in the list of known layers for the device, the Inference Engine considers the layer to be unsupported and reports an error.
 
 ## Steps for Running Application
 
-Before we start the project, we should install Intel® OpenVINO™ toolkit on your environment first. If you do not have it, you need to install the toolkit on your PC (refer to the following page).
+Before we start, we should install Intel® OpenVINO™ toolkit on our environment first (If you do not work on Udacity workspace). Please refer to below page to install the toolkit on your PC.
 
-https://docs.openvinotoolkit.org/latest/openvino_docs_install_guides_installing_openvino_linux.html
+- https://docs.openvinotoolkit.org/latest/openvino_docs_install_guides_installing_openvino_linux.html
 
 ### Step 1: Select DNN Models for Application
-First, we need to select the Deep Learning Neural Network (DNN) model to be executed in the target application. In this project, our purpose is to deploy an application at the edge to detect people appeared in the monitor and count the total number of detected people. I chose the below three FP32 models for the inference. This is because i) and ii) are mainly target for detecting a person (pedestrian), and iii) also support a pedestrian class and it is a famous object detection model with the high accuracy.
+ First, we need to select the Deep Learning Neural Network (DNN) model to be executed for inference in the target application. In this project, our purpose is to deploy an application at the edge to detect people appeared in the monitor and count them. I chose the below three FP32 models for the inference from Open Model Zoo. 
 
-- i) person-detection-retail-0013 (FP32):
+- Model 1: `person-detection-retail-0013` (FP32):
 https://github.com/openvinotoolkit/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-retail-0013/description/person-detection-retail-0013.md
-- ii) pedestrian-detection-adas-0002 (FP32):
+- Model 2: `pedestrian-detection-adas-0002` (FP32):
 https://github.com/openvinotoolkit/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/pedestrian-detection-adas-0002/description/pedestrian-detection-adas-0002.md
-- iii) ssd_mobilenet_v2_coco (FP32):
+- Model 3: `ssd_mobilenet_v2_coco` (FP32):
 https://github.com/openvinotoolkit/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/public/ssd_mobilenet_v2_coco/ssd_mobilenet_v2_coco.md
 
+Models 1 and 2 are mainly target for detecting a person (pedestrian) and output the coordinates of the bounding box. Model 3 also support a pedestrian class for detection and it is a famous object detection model with the high detection accuracy.
 
 ### Step 2: Download Pre-Trained Models
 Open Model Zoo provides a variety of Intel and public pre-trained models such as object detection, semantic segmentation, and so on. These network models can be downloaded by using Model Downloader (`downloader.py`) installed on Intel® OpenVINO™ toolkit.
@@ -34,7 +35,7 @@ Open Model Zoo provides a variety of Intel and public pre-trained models such as
 python3 /opt/intel/openvino_2021/deployment_tools/open_model_zoo/tools/downloader/downloader.py --name [a keyword of model that you want to download] -o [save directory path]
 ```
 
-Without an option for `--precisions`, all the available precisions models (FP32, FP16, and INT8) will be downloaded from the server. For instance, I downloaded a `person-detection-0201` model without specifiying the `--precisions` option, then `person-detection-0201.bin` (weight file) and `person-detection-0201.xml` (network definition file) for FP32, FP16, INT8 are saved in the output directory.
+Without an option for `--precisions`, all the available precisions models (FP32, FP16, and INT8) will be downloaded from the server. For instance, I downloaded a `person-detection-retail-0013` model without specifiying the `--precisions` option, then `person-detection-retail-0013.bin` (weight file) and `person-detection-retail-0013.xml` (network definition file) for FP32, FP16, and INT8 are downloaded in the specified output directory.
 
 ### Step 3: Convert Tensorflow Model to Itermediate Representation
 For a public pre-trained model such as ssd_mobilenet_v2_coco, we need to convert the downloaded Tensorflow model into a Itermediate Representation (IR). For instance, `ssd_mobilenet_v2_coco` models can be downloaded using the above `downloader.py` command. The downloaded package includes a Tensorflow model and config file, and so on. We need to convert this Tensorflow model to Intermediate Representation to enable to input the model into Intel® OpenVINO™ toolkit.
@@ -51,50 +52,56 @@ This command will convert the Tensorflow model and output the two files.
 - frozen_inference_graph.xml
 - frozen_inference_graph.bin
 
-(We changed the file name so that the model can be distinct from others)
+  (We changed the file name so that the model can be distinct from others)
 
 ### Step 4: Checking an Input/Output Shape of the Models
-To implement the application, we need to check an input and output shape of network model. The input and output shapes can be refered in OpenVINO™ documentation. 
+To implement the application including the image pre-process and DNN post-process, we need to know a shape and format of input and output of the network model. The input and output shapes and formats can be surveyed by OpenVINO™ documentation or using OpenVINO™ APIs.
 
-For `person-detection-0201`
-- input: [1x3x320x544] ([BxCxHxW])
+For `person-detection-retail-0013`
+- input: [1x3x320x544] ( [B x C x H x W] )
 - output: [1, 1, N, 7] (where N is the number of detected bounding boxes. Each detection has the format [image_id, label, conf, x_min, y_min, x_max, y_max])
 
-For `person-detection-0201`
-- input: [1x3x384x672] ([BxCxHxW])
+For `pedestrian-detection-adas-0002`
+- input: [1x3x384x672] ( [B x C x H x W] )
 - output: [1, 1, N, 7] (where N is the number of detected bounding boxes. Each detection has the format [image_id, label, conf, x_min, y_min, x_max, y_max])
 
 For `ssd_mobilenet_v2_coco`
-- input: [1,300,300,3] ([BxHxWxC])
+- input: [1,300,300,3] ( [B x H x W x C] )
 - output: [1, 1, N, 7] (where N is the number of detected bounding boxes. Each detection has the format [image_id, label, conf, x_min, y_min, x_max, y_max])
 
 ### Step 5: Implementation the Application
-Please refer to below GitHub repository how we implemented the application. I will omit the detailed explanation for the codes here.
+Please refer to below the source codes how I implemented the application including the image pre-process and DNN post-process. I will omit the detailed explanation for the codes here.
 
-https://github.com/jaya-rho/udacity_project_1/tree/main/nd131-openvino-fundamentals-project-starter
+- https://github.com/jaya-rho/udacity_project_1/tree/main/nd131-openvino-fundamentals-project-starter
 
 ### Step 6: Running the Application
-#### 1) Connect to mosca server:
+Please install the required three components, refer to the below URL.
+- https://github.com/udacity/nd131-openvino-fundamentals-project-starter
+1) MQTT Mosca server
+2) Node.js* Web server
+3) FFmpeg server
+
+#### (1) Connect to MQTT Mosca Server:
 ```
 sudo node ./server.js
 ```
-If 「Mosca server started」 is shown, it is connected correctly.
+It is connected correctly if「Mosca server started」 is shown in a terminal.
 
-#### 2) Connect to GUI
+#### 2) Connect to GUI Web Server
 ```
 cd webservice/ui
 npm run dev
 ```
-If 「webpack: Compiled successfully」is shown, it is connected correctly.
+It is connected correctly if「webpack: Compiled successfully」 is shown in a terminal.
 
-#### 3) Connect to ffserver
+#### 3) Connect to FFmpeg Server
 ```
 cd nd131-openvino-fundamentals-project-starte
 sudo ffserver -f ./ffmpeg/server.conf
 ```
-If such a「Tue Jan 19 22:43:00 2021 FFserver started」is shown, it is connected correctly.
+It is connected correctly if such a 「Tue Jan 19 22:43:00 2021 FFserver started」 is shown in a terminal.
 
-#### 4) Run the application
+#### 4) Run the application (on CPU)
 ```
 source /opt/intel/openvino_2021/bin/setupvars.sh
 export CAMERA_FEED_SERVER="http://localhost:3004"
@@ -117,54 +124,97 @@ python3 main.py \
 ```
 http://0.0.0.0:3000/
 ```
+![A sample capture of the application](https://github.com/jaya-rho/udacity_project_1/blob/main/nd131-openvino-fundamentals-project-starter/images/screenshot_people_counter_app.png)
 
 ## Comparison for Model Performance
 
-My method(s) to compare models before and after conversion to Intermediate Representations
-were...
+We compared the performance of i) model size and ii) average inference time using a network model `ssd_mobilenet_v2_coco` (FP32).
 
-The difference between model accuracy pre- and post-conversion was...
+- Model Size:
+```
+before: 
+  ssd_mobilenet_v2_coco/* 202 MB
 
-The size of the model pre- and post-conversion was...
+after: 
+  ssd_mobilenet_v2_coco.bin 65 MB
+  ssd_mobilenet_v2_coco.xml 256 KB
+```
+Before the model optimization, the model size which includes all the files in the downloaded `ssd_mobilenet_v2_coco/` is 202 MB. However, the model size decreases to about 65.3 MB after adapting a model conversion (optimization) tool.
 
-The inference time of the model pre- and post-conversion was...
+- Inference Time: 
+```
+before:
+  the inference time in average: 31 ms
+after:  
+  the inference time in average: 14.22 ms
+```
+
+Even though we have the smaller model size compared to the original Tensorflow model after adapting the model conversion, the inference time in average per frame decreases from 31 ms to 14.22 ms in FP32 precision.
 
 ## Assess Model Use Cases
 
-Some of the potential use cases of the people counter app are...
+Some of the potential use cases of the people counter app are described below.
 
-Each of these use cases would be useful because...
+1) Admission Restriction in Convenience Store
 
-- Entry Restriction into Convenience Store
-to keep a social distance withing COVID-19, the number of people who can enter the convenience store is limited up to 10 at once, also a person can stary in the store up to 5 minutes. If a person who does not follow this rule, an alert will be announced.
+      It is very important to keep a social distance and to avoid a place where is very crowded by people due to COVID-19. Assume that a convenience store begins to limit the number of people who can enter the store up to 10 at the same time. Also, a time that a person can stay in the store after he or she enters is 15 minutes in the maximum. If a person who does not follow these rules, some cautions will be announced.
+
+2) Survey for How Long It Takes to Solve the Mathematic Question?
+
+      Assume that I am making a question for the mathematics exam. This question seems like pretty easy for me, but I do not know how difficult this question for high school students. So I invite a hundred of students to accept this survey, and a student who accepts it will take an exam in a classroom alone. He or she can exit the room if he or she finishes the exam. The people counter application can be useful in this situation because I can know how many student took this exam and how much time a student spend to get the answer in average.
 
 ## Assess Effects on End User Needs
 
-Lighting, model accuracy, and camera focal length/image size have different effects on a
-deployed edge model. The potential effects of each of these are as follows...
+Lighting, model accuracy, and camera focal length/image size have different effects on a deployed edge model.
+
+- Lighting and Focal Length of the camera can significantly reduces the accuracy of the model. The camera condition such as foggy lenses and an installed camera-angle are very important issue related to the model detection accuracy.
+
+- The model used in the application should be well trained with the images which are similar with the real-environment scenes.
 
 ## Model Research
 
-[This heading is only required if a suitable model was not found after trying out at least three
-different models. However, you may also use this heading to detail how you converted 
-a successful model.]
+In investigating potential people counter models, I tried each of the following three models. We used the same input file named `resources/Pedestrian_Detect_2_1_1.mp4` for the inference of three models. To determine an appropriate confidence threshold for each model, we seached the maximum value as the confidence threshold where the number of detected object (person) per one frame does not exceed one. This is because the number of person per each frame in the input data (movie) is not over one (a person appears in a sequence manner).
 
-In investigating potential people counter models, I tried each of the following three models:
+- Model 1: `person-detection-retail-0013`
+  - https://github.com/openvinotoolkit/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-retail-0013/description/person-detection-retail-0013.md
+  - We do not have to convert to an Intermediate Representation (IR) since it is already converted when I downloaded from the server.
+  - 
+    | Model Name | Model Size [MB] | Average Precision [%] | Average Inference Time per Frame [ms] (※)| Total Count of People| Confidence Threshold|
+    | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+    | person-detection-0201 (FP32) | 3.2 MB | 88.62 % | 10.99 ms | 15 | 0.35 |
 
-- Model 1: [Name]
-  - [Model Source]
-  - I converted the model to an Intermediate Representation with the following arguments...
-  - The model was insufficient for the app because...
-  - I tried to improve the model for the app by...
-  
-- Model 2: [Name]
-  - [Model Source]
-  - I converted the model to an Intermediate Representation with the following arguments...
-  - The model was insufficient for the app because...
-  - I tried to improve the model for the app by...
+- Model 2: `pedestrian-detection-adas-0002`
+  - https://github.com/openvinotoolkit/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/pedestrian-detection-adas-0002/description/pedestrian-detection-adas-0002.md
+  - We do not have to convert to an Intermediate Representation (IR) since it is already converted when I downloaded from the server.
+  - 
+    | Model Name | Model Size [MB] | Average Precision [%] | Average Inference Time per Frame [ms] (※)| Total Count of People| Confidence Threshold |
+    | --- | ---: | ---: | ---: | ---: | ---: |
+    | pedestrian-detection-adas-0002 (FP32) | 4.7 MB | 88% | 12.6 ms | 8 | 0.9 |
 
-- Model 3: [Name]
-  - [Model Source]
-  - I converted the model to an Intermediate Representation with the following arguments...
-  - The model was insufficient for the app because...
-  - I tried to improve the model for the app by...
+- Model 3: `ssd_mobilenet_v2_coco`
+  - https://github.com/openvinotoolkit/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/public/ssd_mobilenet_v2_coco/ssd_mobilenet_v2_coco.md
+  - I converted the model to an Intermediate Representation with the following command.
+    ```
+    cd /opt/intel/openvino/deployment_tools/model_optimizer
+    python3 mo.py \
+    --input_model frozen_inference_graph.pb \
+    --tensorflow_object_detection_api_pipeline_config pipeline.config \
+    --reverse_input_channels \
+    --transformations_config /opt/intel/openvino/deployment_tools/model_optimizer/extensions/front/tf/ssd_v2_support.json
+    ```
+   - 
+     | Model Name | Model Size [MB] | Average Precision [%] | Average Inference Time per Frame [ms] (※)| Total Count of People | Confidence Threshold |
+     | --- | ---: | ---: | ---: | ---: | ---: |
+     | ssd_mobilenet_v2_coco (FP32) | 65 MB | - | 14.32 ms | 45 | 0.7 |
+
+ (※ Inference Time: 
+A time from the start time of infer_network.exec_net() to the finish time of infer_network.wait() == 0; thus, this time does not include the image pre-process and post-process of DNN)
+
+I selected Model 2 (`pedestrian-detection-adas-0002`) to use in the target people count application with consideration of the three below things.
+
+- Low memory consumption
+- High accuracy with total count of people (a correct answer is 6)
+- Fast inference time
+
+Model 1 has the lowest memory consumption and the fastest inference time, however, its accuracy for detecting total count of people is lower than Model 2. Model 2 has also a kind of good performance at a memory usage and inference time and a percentage of correct answer for the total count of people.
+
