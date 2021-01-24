@@ -27,6 +27,8 @@ import sys
 import logging as log
 from openvino.inference_engine import IENetwork, IECore
 
+from logger import Logger
+logger = Logger.get_logger('logger')
 
 class Network:
     """
@@ -44,11 +46,11 @@ class Network:
 
     def load_model(self, xml_model, device='CPU', cpu_ext=None):
         """ Load the model """
-#        print('* load model *')
+        logger.debug('* load model *')
         model_dir_path = os.path.splitext(xml_model)[0]
         bin_model = model_dir_path + '.bin'
-#        print(' - xml model: %s' % (xml_model))
-#        print(' - bin model: %s' % (bin_model))
+        logger.debug(' - xml model: %s' % (xml_model))
+        logger.debug(' - bin model: %s' % (bin_model))
 
         # Initialize the Inference Engine
         self.infer_engine_ = IECore()
@@ -63,19 +65,19 @@ class Network:
         # Check for supported layers ###
         layers_map = self.infer_engine_.query_network(self.network_, "CPU")
 
-#        print('* layers info *')
+        logger.debug('* layers info *')
         layer_num = 0
         unsupport_layers = []
         for layer, hw in layers_map.items():
             if not hw in ['CPU']:
-#                print(' [U] #%d: %s [%s]' % (layer_num, layer, hw))
+                logger.debug(' [U] #%d: %s [%s]' % (layer_num, layer, hw))
                 unsupport_layers.append(layer)
             else:
-#                print(' [S] #%d: %s [%s]' % (layer_num, layer, hw))
+                logger.debug(' [S] #%d: %s [%s]' % (layer_num, layer, hw))
                 pass
             layer_num += 1
 
-#        print(' - unsupported layers: %s' % unsupport_layers)
+        logger.debug(' - unsupported layers: %s' % unsupport_layers)
 
         # Return the loaded inference plugin ###
         self.exec_network_ = self.infer_engine_.load_network(self.network_, device)
@@ -84,9 +86,9 @@ class Network:
         self.input_blob_ = next(iter(self.network_.inputs))
         self.output_blob_ = next(iter(self.network_.outputs))
 
-#        print('* blob info *')
-#        print(' - input : %s' % self.input_blob_)
-#        print(' - output: %s' % self.output_blob_)
+        logger.debug('* blob info *')
+        logger.debug(' - input : %s' % self.input_blob_)
+        logger.debug(' - output: %s' % self.output_blob_)
         return
 
     def get_input_shape(self):
@@ -106,8 +108,8 @@ class Network:
     def get_output(self):
         """ Extract and return the output results """
         infer_output = self.exec_network_.requests[0].outputs[self.output_blob_]
-#        print('  - extracting DNN output from blob (%s)' % self.output_blob_)
+        logger.debug('  - extracting DNN output from blob (%s)' % self.output_blob_)
         # DNN output  [1, 1, N, 7], [image_id, label, conf, x_min, y_min, x_max, y_max]
-#        print('  - output shape: {}'.format(infer_output.shape))
+        logger.debug('  - output shape: {}'.format(infer_output.shape))
         return infer_output
 

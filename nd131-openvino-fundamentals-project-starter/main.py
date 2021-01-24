@@ -36,6 +36,9 @@ from argparse import ArgumentParser
 from inference import Network
 from sys import platform
 
+from logger import Logger
+logger = Logger.get_logger('logger')
+
 # MQTT server environment variables
 HOSTNAME = socket.gethostname()
 IPADDRESS = socket.gethostbyname(HOSTNAME)
@@ -47,13 +50,14 @@ MQTT_KEEPALIVE_INTERVAL = 60
 # Get correct CPU extension
 if platform == "linux" or platform == "linux2":
     CPU_EXTENSION = "/opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so"
-    CODEC = 0x00000021
+    #CODEC = 0x00000021
+    CODEC = cv2.VideoWriter_fourcc('F', 'M', 'P', '4')
 elif platform == "darwin":
     CPU_EXTENSION = "/opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension.dylib"
  #   CODEC = cv2.VideoWriter_fourcc('M','J','P','G')  # it does not work on MAC
     CODEC = cv2.VideoWriter_fourcc('F', 'M', 'P', '4')
 else:
-    print("Unsupported OS.")
+    logger.debug("Unsupported OS.")
     exit(1)
 
 
@@ -81,6 +85,7 @@ def build_argparser():
     parser.add_argument("-pt", "--prob_threshold", type=float, default=0.5,
                         help="Probability threshold for detections filtering"
                         "(0.5 by default)")
+    parser.add_argument('--log_level', type=str, choices=['debug', 'info', 'warning', 'error', 'critical'])
     return parser
 
 
@@ -115,10 +120,10 @@ def extract_valid_object(infer_output):
                 obj_dict['y_max'] = h[6]
 
                 # append only the valid object
-                if not all(v == 0 for v in obj_dict.values()):
+                if not all(v <= 0 for v in obj_dict.values()):
                     valid_obj.append(obj_dict)
 
-#    print('res: {}'.format(valid_obj))
+    logger.debug('res: {}'.format(valid_obj))
 
     return valid_obj
 
@@ -137,7 +142,7 @@ def draw_boundingbox(image, infer_output, image_width, image_height, conf_thresh
     """
 
     out_image = image.copy()
-#    print('  - input image: [width] %d, [height] %d' % (image.shape[1], image.shape[0]))
+    logger.debug('  - input image: [width] %d, [height] %d' % (image.shape[1], image.shape[0]))
 
     def check_valid_range(val, max_val):
         """ check the coordinate of bbox is inside of an image"""
@@ -173,7 +178,7 @@ def draw_boundingbox(image, infer_output, image_width, image_height, conf_thresh
 
             valid_obj_num += 1
             valid_obj_bbox.append((xmin, ymin, xmax, ymax))
-#            print('  - draw bbox [%d, %d, %d, %d] confidence: %f' % (xmin,ymin,xmax,ymax,conf))
+            logger.debug('  - draw bbox [%d, %d, %d, %d] confidence: %f' % (xmin,ymin,xmax,ymax,conf))
 
     # assert if one more people are detected per frame
     if valid_obj_num > 1:
@@ -219,14 +224,14 @@ def infer_on_stream(args, client):
     cap.open(input_fpath)
     # [1, 3, 320, 544] (BCHW)
     net_input_dims = infer_network.get_input_shape()
-#    print('* DNN input dims: {}'.format(net_input_dims))
+    logger.debug('* DNN input dims: {}'.format(net_input_dims))
 
     width = int(cap.get(3))
     height = int(cap.get(4))
     # * Video dims: [height:432, width:768]
-#    print('* Video dims: [height:{}, width:{}]'.format(height, width))
+    logger.debug('* Video dims: [height:{}, width:{}]'.format(height, width))
 
-#    print('platform: {}'.format(platform))
+    logger.debug('platform: {}'.format(platform))
     out_video = cv2.VideoWriter('out_result.mp4', CODEC, 30, (width, height))
 
     # Loop until stream is over
@@ -249,8 +254,8 @@ def infer_on_stream(args, client):
         p_frame = p_frame.transpose((2,0,1))
         # reshape (3, 320, 544) to (1, 3, 320, 544)
         p_frame = p_frame.reshape(1, *p_frame.shape)
-#        print('+ frame %d' % (frame_num))
-#        print('  - shape: {}'.format(p_frame.shape))
+        logger.debug('+ frame %d' % (frame_num))
+        logger.debug('  - shape: {}'.format(p_frame.shape))
 
         # Start asynchronous inference for specified request
         infer_start = time.time()
@@ -273,10 +278,10 @@ def infer_on_stream(args, client):
             def add_text_on_image(image, insert_text=None, loc=(10,10), tsize=0.4, tcolr=(209, 130, 0, 255), tbold=1):
                 # add a text
                 cv2.putText(image, insert_text, loc, cv2.FONT_HERSHEY_SIMPLEX, tsize, tcolr, tbold)
-#                print('  - [add the text on image] %s' % (insert_text))
+                logger.debug('  - [add the text on image] %s' % (insert_text))
                 return
 
-#            print('  - total number of people: %d' % total_valid_pers_num)
+            logger.debug('  - total number of people: %d' % total_valid_pers_num)
 
             if valid_pers_num > last_valid_pers_num:
                 # the number of detected people increases
@@ -290,7 +295,7 @@ def infer_on_stream(args, client):
                 # the number of detected people not changed, do nothing
                 pass
 
-#            print('  - result: {}'.format(mis_detect_cnt))
+            logger.debug('  - result: {}'.format(mis_detect_cnt))
             insert_text = 'duration time: %d sec' % (duration_time_sec)
             add_text_on_image(out_frame, insert_text, (10,60))
 
@@ -325,6 +330,8 @@ def infer_on_stream(args, client):
         # Break if escape key pressed
         if key_pressed == 27:
             break
+#        if frame_num > 500:
+#            break
 
         # count up the frame number
         frame_num += 1
@@ -346,6 +353,9 @@ def main():
     """
     # Grab command line args
     args = build_argparser().parse_args()
+
+    # Create a logger object
+    Logger('logger', args.log_level)
 
     # Connect to the MQTT server
     client = connect_mqtt()
