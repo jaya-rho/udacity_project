@@ -180,7 +180,7 @@ In investigating potential people counter models, I tried each of the following 
   - We do not have to convert to an Intermediate Representation (IR) since it is already converted when I downloaded from the server.
   - | Model Name | Model Size [MB] | Average Precision [%] | Average Inference Time per Frame [ms] (※)| Total Count of People| Confidence Threshold|
     | --- | ---: | ---: | ---: | ---: | ---: | 
-    | person-detection-0201 (FP32) | 3.2 MB | 88.62 % | 10.99 ms | 15 | 0.35 |
+    | person-detection-0201 (FP32) | 3.2 MB | 88.62 % | 10.99 ms | 6 | 0.9 |
 
 - Model 2: `pedestrian-detection-adas-0002`
   - https://github.com/openvinotoolkit/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/pedestrian-detection-adas-0002/description/pedestrian-detection-adas-0002.md
@@ -188,7 +188,7 @@ In investigating potential people counter models, I tried each of the following 
   - 
     | Model Name | Model Size [MB] | Average Precision [%] | Average Inference Time per Frame [ms] (※)| Total Count of People| Confidence Threshold |
     | --- | ---: | ---: | ---: | ---: | ---: |
-    | pedestrian-detection-adas-0002 (FP32) | 4.7 MB | 88% | 12.6 ms | 8 | 0.9 |
+    | pedestrian-detection-adas-0002 (FP32) | 4.7 MB | 88% | 12.6 ms | 12 | 0.9 |
 
 - Model 3: `ssd_mobilenet_v2_coco`
   - https://github.com/openvinotoolkit/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/public/ssd_mobilenet_v2_coco/ssd_mobilenet_v2_coco.md
@@ -204,7 +204,7 @@ In investigating potential people counter models, I tried each of the following 
    - 
      | Model Name | Model Size [MB] | Average Precision [%] | Average Inference Time per Frame [ms] (※)| Total Count of People | Confidence Threshold |
      | --- | ---: | ---: | ---: | ---: | ---: |
-     | ssd_mobilenet_v2_coco (FP32) | 65 MB | - | 14.32 ms | 45 | 0.7 |
+     | ssd_mobilenet_v2_coco (FP32) | 65 MB | - | 21.72 ms | 14 | 0.9 |
 
  (※ Inference Time: 
 A time from the start time of infer_network.exec_net() to the finish time of infer_network.wait() == 0; thus, this time does not include the image pre-process and post-process of DNN)
