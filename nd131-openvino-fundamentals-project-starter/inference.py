@@ -95,9 +95,9 @@ class Network:
         """ Return the shape of the input layer """
         return self.network_.inputs[self.input_blob_].shape
 
-    def exec_net(self, image):
+    def exec_net(self, image, request_id=0):
         """ Start an asynchronous request """
-        self.exec_network_.start_async(request_id=0,inputs={self.input_blob_: image})
+        self.exec_network_.start_async(request_id=request_id,inputs={self.input_blob_: image})
         return
 
     def wait(self):
