@@ -239,7 +239,8 @@ def infer_on_stream(args, client):
     last_valid_pers_num = 0
     total_valid_pers_num = 0
     duration_time_sec = 0
-    mis_detect_cnt = [False]*3
+    miss_detect_cnt = 0
+    start_tracking = False
     all_infer_time = []
 
     while cap.isOpened():
@@ -284,30 +285,60 @@ def infer_on_stream(args, client):
 
             logger.debug('  - total number of people: %d' % total_valid_pers_num)
 
-            if valid_pers_num > last_valid_pers_num:
-                # the number of detected people increases
-                emerge_time = time.time()
-                total_valid_pers_num += (valid_pers_num - last_valid_pers_num)
-            elif valid_pers_num < last_valid_pers_num:
-                # the number of detected people decreases
-                assert emerge_time >= 0, 'a person emerged time is not valid ({})'.format(emerge_time)
-                duration_time_sec = time.time() - emerge_time
-            else:
-                # the number of detected people not changed, do nothing
-                pass
+            logger.debug(f'[#check#] valid person number: {valid_pers_num}')
+            logger.debug(f'[#check#] last valid person number: {last_valid_pers_num}')
+            logger.debug(f'[#check#] total count ({total_valid_pers_num})')
 
-            logger.debug('  - result: {}'.format(mis_detect_cnt))
+            # p1: 0-0-0-0-0-0-0-0-0-0 (F)
+            # p2: 0-0-1-1-1-0-0-0-0-1 (F)
+            # p3: 0-0-1-1-1-0-0-0-0-0 (F)
+            # p4: 0-0-1-0-1-1-1-1-1-1 (F)
+            if start_tracking:  # if a person disappears for a sec
+                miss_detect_cnt += 1
+                logger.debug(f'[#check#] miss count ({miss_detect_cnt})')
+                if miss_detect_cnt == 5: # if miss detection continues for the consecutive 5 frames, we think a person disappeared
+                    duration_time_sec = time.time() - emerge_time
+                    total_valid_pers_num += 1
+
+                    # Topic "person/duration": key of "duration"
+                    client.publish("person/duration", json.dumps({"duration": duration_time_sec}))
+                    # Topic "person": keys of "count" and "total"
+                    client.publish("person", json.dumps({"total": total_valid_pers_num}))
+
+                    logger.debug(f'[#check#] a person is disappeared')
+                    logger.debug(f'[#check#] total count ({total_valid_pers_num})')
+                    logger.debug(f'[#check#] duration ({duration_time_sec})')
+                    # initialize
+                    start_tracking = False
+                    miss_detect_cnt = 0
+                elif valid_pers_num > last_valid_pers_num:
+                    # initialize
+                    start_tracking = False
+                    miss_detect_cnt = 0
+
+            else:
+                if valid_pers_num > last_valid_pers_num: # 0->1
+                    emerge_time = time.time()
+                elif valid_pers_num < last_valid_pers_num: # 1->0
+                    start_tracking = True
+                else:  #0->0
+                    pass
+
+            # add duration time on the image
             insert_text = 'duration time: %d sec' % (duration_time_sec)
             add_text_on_image(out_frame, insert_text, (10,60))
 
+            # add total count of people on the image
             insert_text = 'total count of people: %d' % (total_valid_pers_num)
             add_text_on_image(out_frame, insert_text, (10,40))
-            last_valid_pers_num = valid_pers_num
 
             # add inference time on the image
             insert_text = "inference time(without post-process): %.2fms" % (infer_time_ms)
             add_text_on_image(out_frame, insert_text, (10,20))
             all_infer_time.append(infer_time_ms)
+
+            # save a current valid person number into the last valid person number
+            last_valid_pers_num = valid_pers_num
 
             if is_image_input:
                 path = '.'
@@ -318,12 +349,8 @@ def infer_on_stream(args, client):
                 out_video.write(out_frame)
 
             # Send current_count, total_count and duration to the MQTT server ###
-            # Topic "person": keys of "count" and "total"
             client.publish("person", json.dumps({"count": valid_pers_num}))
-            client.publish("person", json.dumps({"total": total_valid_pers_num}))
 
-            # Topic "person/duration": key of "duration"
-            client.publish("person/duration", json.dumps({"duration": duration_time_sec}))
 
         # Send the frame to the FFMPEG server
         sys.stdout.buffer.write(out_frame)
