@@ -180,10 +180,6 @@ def draw_boundingbox(image, infer_output, image_width, image_height, conf_thresh
             valid_obj_bbox.append((xmin, ymin, xmax, ymax))
             logger.debug('  - draw bbox [%d, %d, %d, %d] confidence: %f' % (xmin,ymin,xmax,ymax,conf))
 
-    # assert if one more people are detected per frame
-    if valid_obj_num > 1:
-        assert False, 'people counter > 1 in one frame'
-
     return out_image, valid_obj_num
 
 
