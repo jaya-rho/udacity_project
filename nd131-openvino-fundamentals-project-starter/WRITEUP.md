@@ -137,7 +137,7 @@ python3 main.py \
 ```
 http://0.0.0.0:3000/
 ```
-![A sample capture of the application](https://github.com/jaya-rho/udacity_project_1/blob/main/nd131-openvino-fundamentals-project-starter/images/screenshot_people_counter_app.png)
+![A sample capture of the application](https://github.com/jaya-rho/udacity_project_1/blob/main/nd131-openvino-fundamentals-project-starter/images/intel_project1_on_mqtt.png)
 
 ## Comparison for Model Performance
 
