@@ -137,32 +137,37 @@ python3 main.py \
 ```
 http://0.0.0.0:3000/
 ```
-![A sample capture of the application](https://github.com/jaya-rho/udacity_project_1/blob/main/nd131-openvino-fundamentals-project-starter/images/intel_project1_on_mqtt.png)
+![A sample capture of the application](https://github.com/jaya-rho/udacity_project_1/blob/main/nd131-openvino-fundamentals-project-starter/images/screenshot_people_counter_app.png)
 
 ## Comparison for Model Performance
 
-We compared the performance of i) model size and ii) average inference time using a network model `ssd_mobilenet_v2_coco` (FP32).
+We compared the performance of the model conversion (optimization) in terms of i) model size and ii) average inference time using a network model `ssd_mobilenet_v2_coco` (FP32).
 
 - Model Size:
 ```
-before: 
-  ssd_mobilenet_v2_coco/* 202 MB
+before conversion: 
+   ssd_mobilenet_v2_coco/*: 202 MB
 
-after: 
-  ssd_mobilenet_v2_coco.bin 65 MB
-  ssd_mobilenet_v2_coco.xml 256 KB
+after conversion: 
+   ssd_mobilenet_v2_coco.bin: 65 MB
+   ssd_mobilenet_v2_coco.xml: 256 KB
 ```
-Before the model optimization, the model size which includes all the files in the downloaded `ssd_mobilenet_v2_coco/` is 202 MB. However, the model size decreases to about 65.3 MB after adapting a model conversion (optimization) tool.
+Before the model conversion, the model size which includes all the files in the downloaded `ssd_mobilenet_v2_coco/` is almost 202 MB. However, the model size decreases to about 65.3 MB after adapting a model conversion (optimization) tool.
 
-- Inference Time: 
+- Inference Time (an average for 1,000 iterations):
 ```
-before:
-  the inference time in average: 31 ms
-after:  
-  the inference time in average: 14.22 ms
+before conversion:
+   the inference time in average: 22.41 ms
+after conversion:  
+   the inference time in average: 14.22 ms
 ```
 
-Even though we have the smaller model size compared to the original Tensorflow model after adapting the model conversion, the inference time in average per frame decreases from 31 ms to 14.22 ms in FP32 precision.
+We run the inference for `ssd_mobilenet_v2_coco` model with input data size [1,300,300,3] on CPU, and get the average inference time for 1,000 iterations. To measure the inference time with a Tensorflow model, we used a below python program.
+
+- https://github.com/jaya-rho/udacity_project_1/blob/main/nd131-openvino-fundamentals-project-starter/infer_tf_model.py
+
+The results are shown in above. Even though the converted model has smaller size compared to the original one (Tensorflow model), the inference time in average decreases from 22.41 ms to 14.22 ms in FP32 precision. 
+
 
 ## Assess Model Use Cases
 
