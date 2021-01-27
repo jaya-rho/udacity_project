@@ -159,7 +159,7 @@ Before the model conversion, the model size which includes all the files in the 
 before conversion:
    the inference time in average: 22.41 ms
 after conversion:  
-   the inference time in average: 14.22 ms
+   the inference time in average: 15.15 ms
 ```
 
 We run the inference for `ssd_mobilenet_v2_coco` model with input data size [1,300,300,3] on CPU, and get the average inference time for 1,000 iterations. To measure the inference time with a Tensorflow model, we used a below python program.
@@ -262,7 +262,7 @@ In investigating potential people counter models, I tried each of the following 
     | --- | --: | ---: | ---: | ---: | ---: | 
     | person-detection-retail-0013 | FP32 | 3.2 MB | 10.99 ms | 6 | 0.9 |
     | pedestrian-detection-adas-0002 | FP32 | 4.7 MB | 19.97 ms | 6 | 0.9 |
-    | ssd_mobilenet_v2_coco | FP32 | 65 MB | 21.72 ms | 13 | 0.4 |
+    | ssd_mobilenet_v2_coco | FP32 | 65 MB | 15.15 ms | 13 | 0.4 |
     | ssdlite_mobilenet_v2 | FP32 | 18 MB | 13.35 ms | 11 | 0.5 |
     | ssd_mobilenet_v1_coco | FP32 | 27 MB | 16.15 ms | 18 | 0.3 |
     ||||||
