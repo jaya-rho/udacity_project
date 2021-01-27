@@ -258,13 +258,13 @@ In investigating potential people counter models, I tried each of the following 
     ```
 
 - Summary for Performance Comparison
-  - | Model Name | Precision | Model Size [MB] | Average Precision [%] | Average Inference Time per Frame [ms] (※)| Total Count of People| Confidence Threshold|
+  - | Model Name | Precision | Model Size [MB] | Average Inference Time per Frame [ms] (※)| Total Count of People| Confidence Threshold|
     | --- | --: | ---: | ---: | ---: | ---: | ---: | 
-    | person-detection-retail-0013 | FP32 | 3.2 MB | 88.62 % | 10.99 ms | 6 | 0.9 |
-    | pedestrian-detection-adas-0002 | FP32 | 4.7 MB | 88% | 19.97 ms | 6 | 0.9 |
-    | ssd_mobilenet_v2_coco | FP32 | 65 MB | - | 21.72 ms | 13 | 0.4 |
-    | ssdlite_mobilenet_v2 | FP32 | 18 MB | - | 13.35 ms | 11 | 0.5 |
-    | ssd_mobilenet_v1_coco | FP32 | 27 MB | - | 16.15 ms | 18 | 0.3 |
+    | person-detection-retail-0013 | FP32 | 3.2 MB | 10.99 ms | 6 | 0.9 |
+    | pedestrian-detection-adas-0002 | FP32 | 4.7 MB | 19.97 ms | 6 | 0.9 |
+    | ssd_mobilenet_v2_coco | FP32 | 65 MB | 21.72 ms | 13 | 0.4 |
+    | ssdlite_mobilenet_v2 | FP32 | 18 MB | 13.35 ms | 11 | 0.5 |
+    | ssd_mobilenet_v1_coco | FP32 | 27 MB | 16.15 ms | 18 | 0.3 |
     |||||||
 
     (※ Inference time: 
