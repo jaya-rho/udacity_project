@@ -27,7 +27,6 @@ import time
 import socket
 import json
 import cv2
-import time
 
 import logging as log
 import paho.mqtt.client as mqtt
@@ -245,6 +244,13 @@ def infer_on_stream(args, client):
         if not flag:
             break
         key_pressed = cv2.waitKey(60)
+
+        # for debug
+        if frame[0].size > 0:
+            logger.debug(frame)
+            logger.debug(f'saved the frame into img_{frame_num}.png !!!')
+            cv2.imwrite(f'resources/images/img_{frame_num}.png', frame)
+            cv2.imshow('win', frame)
 
         # Pre-processing the image
         # cv2.resize(src, dsize=(width, height))
