@@ -4,6 +4,7 @@ from logger import Logger
 logger = Logger.get_logger('logger')
 
 from face_detection import Model_FaceDetection
+from input_feeder import InputFeeder
 
 def build_argparser():
     """
@@ -39,6 +40,7 @@ def main():
     # Create a logger object
     Logger('logger', args.log_level)
 
+    # Check arguments
     logger.info(' Arguements:')
     logger.info(f'  - model #1: {args.face_detec}')
     logger.info(f'  - model #2: {args.facial_land}')
@@ -46,8 +48,27 @@ def main():
     logger.info(f'  - model #4: {args.gaze_est}')
     logger.info(f'  - input: {args.input}')
    
-    # self, model_name, device='CPU', extensions=None
+    # Load the input video
+    input_feeder = InputFeeder("video", args.input)
+    input_feeder.load_data()
+
+    # Load Face Detection model
     m_fd = Model_FaceDetection(args.face_detec, args.device, args.cpu_extension) 
+    m_fd.load_model()
+#    m_fd.preprocess_input()
+
+    # read the input data
+    n_frame = 0
+    for ret, frame in input_feeder.next_batch():
+
+        if not ret:
+            break
+
+        logger.debug(f'frame #{n_frame:3d}: {frame.shape}')
+        n_frame += 1
+
+        m_fd.preprocess_input(frame)
+
 
 if __name__ == '__main__':
     main()
