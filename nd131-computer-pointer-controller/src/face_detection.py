@@ -12,6 +12,7 @@ logger = Logger.get_logger('logger')
 class Model_FaceDetection:
     '''
     Class for the Face Detection Model.
+    https://docs.openvinotoolkit.org/latest/omz_models_intel_face_detection_adas_0001_description_face_detection_adas_0001.html
     '''
     def __init__(self, model_name, device='CPU', extensions=None):
         '''
@@ -56,7 +57,7 @@ class Model_FaceDetection:
         """ Return the shape of the input layer """
         return self.network_.inputs[self.input_blob_].shape
 
-    def predict(self, image):
+    def predict(self, image, request_id=0):
         '''
         TODO: You will need to complete this method.
         This method is meant for running predictions on the input image.
@@ -73,7 +74,6 @@ class Model_FaceDetection:
         """ Extract and return the output results """
         infer_output = self.exec_network_.requests[0].outputs[self.output_blob_]
         logger.debug('  - extracting DNN output from blob (%s)' % self.output_blob_)
-        # DNN output  [1, 1, N, 7], [image_id, label, conf, x_min, y_min, x_max, y_max]
         logger.debug('  - output shape: {}'.format(infer_output.shape))
         return infer_output
 
@@ -84,8 +84,8 @@ class Model_FaceDetection:
         '''
         Before feeding the data into the model for inference,
         you might have to preprocess it. This function is where you can do that.
-        '''
         # shape: [1x3x384x672] - An input image in the format [BxCxHxW],
+        '''
         [n, c, h, w] = self.get_input_shape()
 
         converted_frame = cv2.resize(image, (w, h), interpolation = cv2.INTER_AREA)
@@ -98,9 +98,24 @@ class Model_FaceDetection:
         logger.debug(f'input [{image.shape}] -> converted_input [{converted_frame.shape}]')
         return converted_frame
 
-    def preprocess_output(self, outputs):
+    def preprocess_output(self, outputs, conf_thres):
         '''
         Before feeding the output of this model to the next model,
         you might have to preprocess the output. This function is where you can do that.
+        # [1, 1, N, 7] where N is the number of detected bounding boxes
+        # [image_id, label, conf, x_min, y_min, x_max, y_max]
         '''
-        raise NotImplementedError
+        detected_bboxes = []
+        # output: [[[[ e1, e2, e3, .. , e7 ]]]]
+        for bbox in outputs[0][0]:
+            confidence = bbox[2]
+            if confidence > conf_thres:
+                valid_bbox = (bbox[3], bbox[4], bbox[5], bbox[6])
+                logger.debug(f'append bbox [{bbox[3]},{bbox[4]},{bbox[5]},{bbox[6]}]')
+                detected_bboxes.append(valid_bbox)
+
+        top_detected_bbox = detected_bboxes[0]
+        #TODO: add assertion
+                
+        return top_detected_bbox
+
