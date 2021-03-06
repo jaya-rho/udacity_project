@@ -3,6 +3,7 @@ This is a sample class for a model. You may choose to use it as-is or make any c
 This has been provided just to give you an idea of how to structure your model class.
 '''
 import cv2
+import math
 
 from openvino.inference_engine import IENetwork, IECore
 
@@ -27,6 +28,7 @@ class Model_GazeEstimation:
         self.exec_network_ = None
         self.input_blob_ = []
         self.output_blob_ = []
+        self.load_model()
 
     def load_model(self):
         """
@@ -43,7 +45,7 @@ class Model_GazeEstimation:
         # Return the loaded inference plugin ###
         self.exec_network_ = self.infer_engine_.load_network(self.network_, self.device_)
 
-        self.input_blob_ = next(iter(self.network_.inputs))
+        self.input_blob_ = list(self.network_.inputs.keys())
         self.output_blob_ = next(iter(self.network_.outputs))
 
         logger.debug('* blob info *')
@@ -52,19 +54,43 @@ class Model_GazeEstimation:
 
     def get_input_shape(self):
         """ Return the shape of the input layer """
-        return self.network_.inputs[self.input_blob_].shape
+        input_shape_d = {}
+        for i in self.input_blob_:
+            input_shape_d[i] = self.network_.inputs[i].shape
 
-    def predict(self, image, request_id=0):
+        return input_shape_d
+
+    def predict(self, cropped_left_eye, cropped_right_eye, hp_angle, request_id=0):
         """
         This method is meant for running predictions on the input image.
         inference with an asynchronous request
+
+        # input #1: left_eye_image and the shape [1x3x60x60] (BxCxHxW)
+        # input #2: right_eye_image and the shape [1x3x60x60]
+        # input #3: head_pose_angles and the shape [1x3] (BxC)
         """
-        self.exec_network_.start_async(request_id=request_id,inputs={self.input_blob_: image})
-        return
+
+        preproc_left_eye = self.preprocess_input(cropped_left_eye, "left_eye_image")
+        preproc_right_eye = self.preprocess_input(cropped_right_eye, "right_eye_image")
+        self.exec_network_.infer(inputs={
+            "left_eye_image": preproc_left_eye,
+            "right_eye_image": preproc_right_eye,
+            "head_pose_angles": hp_angle})
+#        self.exec_network_.start_async(request_id=request_id,inputs={
+#            "left_eye_image":le_image,
+#            "right_eye_image":re_image,
+#            "head_pose_angles":hp_angle
+#            })
+
+        infer_result = self.get_output()
+        mouse_coords, gaze_vec = self.preprocess_output(infer_result, hp_angle)
+
+        return mouse_coords, gaze_vec
 
     def wait(self):
         """ Wait for the request to be complete """
         infer_status = self.exec_network_.requests[0].wait(-1)
+
         return infer_status
 
     def get_output(self):
@@ -72,16 +98,18 @@ class Model_GazeEstimation:
         infer_output = self.exec_network_.requests[0].outputs[self.output_blob_]
         logger.debug('  - extracting DNN output from blob (%s)' % self.output_blob_)
         logger.debug('  - output shape: {}'.format(infer_output.shape))
+
         return infer_output
 
-    def preprocess_input(self, image):
+    def preprocess_input(self, image, input_name):
         '''
         preprocess before feeding the data into the model for inference
-        # with the name left_eye_image and the shape [1x3x60x60] (BxCxHxW)
-        # with the name right_eye_image and the shape [1x3x60x60]
-        # with the name head_pose_angles and the shape [1x3] (BxC)
+        # input #1: left_eye_image and the shape [1x3x60x60] (BxCxHxW)
+        # input #2: right_eye_image and the shape [1x3x60x60]
         '''
-        [n, c, h, w] = self.get_input_shape()
+        input_shape_d = self.get_input_shape()
+        print(f' *** {input_name} shape: {input_shape_d[input_name]}')
+        [n, c, h, w] = input_shape_d[input_name]
 
         converted_frame = cv2.resize(image, (w, h), interpolation = cv2.INTER_AREA)
 
@@ -93,14 +121,20 @@ class Model_GazeEstimation:
         logger.debug(f'input [{image.shape}] -> converted_input [{converted_frame.shape}]')
         return converted_frame
 
-    def preprocess_output(self, outputs, conf_thres):
+    def preprocess_output(self, outputs, hp_angle):
         '''
         preprocess before feeding the output of this model to the next model
-
+        # output: gaze_vector with the shape: [1, 3]
         '''
-        detected_bboxes = []
-        # output: [[[[ e1, e2, e3, .. , e7 ]]]]
-        print(f'output: {outputs}')
+        print(f'outputs: {outputs}')
+        print(f'head pose angle: {hp_angle}')
+        gaze_vec = outputs[0]
+        angle_r_fc = hp_angle[2]
+        cosine = math.cos(angle_r_fc * math.pi / 180.0)
+        sine = math.sin(angle_r_fc * math.pi / 180.0)
+
+        x_val = gaze_vec[0] * cosine + gaze_vec[1] * sine
+        y_val = -gaze_vec[0] * sine + gaze_vec[1] * cosine
                 
-        return detected_bboxes
+        return (x_val, y_val), gaze_vec
 

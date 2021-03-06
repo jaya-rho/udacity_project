@@ -27,6 +27,7 @@ class Model_HeadPoseEstimation:
         self.exec_network_ = None
         self.input_blob_ = []
         self.output_blob_ = []
+        self.load_model()
 
     def load_model(self):
         """
@@ -44,7 +45,7 @@ class Model_HeadPoseEstimation:
         self.exec_network_ = self.infer_engine_.load_network(self.network_, self.device_)
 
         self.input_blob_ = next(iter(self.network_.inputs))
-        self.output_blob_ = next(iter(self.network_.outputs))
+        self.output_blob_ = list(self.network_.outputs.keys())
 
         logger.debug('* blob info *')
         logger.debug(' - input : %s' % self.input_blob_)
@@ -54,25 +55,35 @@ class Model_HeadPoseEstimation:
         """ Return the shape of the input layer """
         return self.network_.inputs[self.input_blob_].shape
 
-    def predict(self, image, request_id=0):
+    def predict(self, frame):
         """
         This method is meant for running predictions on the input image.
         inference with an asynchronous request
         """
-        self.exec_network_.start_async(request_id=request_id,inputs={self.input_blob_: image})
-        return
+        preproc_frame = self.preprocess_input(frame)
+#        self.exec_network_.start_async(request_id=request_id,inputs={self.input_blob_: image})
+        self.exec_network_.infer(inputs={self.input_blob_: preproc_frame})
+        infer_res = self.get_output()
+        angle_y, angle_p, angle_r = self.preprocess_output(infer_res)
+
+        return angle_y, angle_p, angle_r
 
     def wait(self):
         """ Wait for the request to be complete """
         infer_status = self.exec_network_.requests[0].wait(-1)
+
         return infer_status
 
     def get_output(self):
-        """ Extract and return the output results """
-        infer_output = self.exec_network_.requests[0].outputs[self.output_blob_]
-        logger.debug('  - extracting DNN output from blob (%s)' % self.output_blob_)
-        logger.debug('  - output shape: {}'.format(infer_output.shape))
-        return infer_output
+        """ Extract and return the output results as a dictionary """
+        output_d = {}
+        for o in self.output_blob_:
+            infer_output = self.exec_network_.requests[0].outputs[o]
+            output_d[o] = infer_output[0][0]
+            logger.debug('  - extracting DNN output from blob (%s)' % o)
+            logger.debug('  - output shape: {}'.format(infer_output.shape))
+
+        return output_d
 
     def preprocess_input(self, image):
         '''
@@ -89,13 +100,23 @@ class Model_HeadPoseEstimation:
         converted_frame = converted_frame.reshape((n, c, h, w))
 
         logger.debug(f'input [{image.shape}] -> converted_input [{converted_frame.shape}]')
+
         return converted_frame
 
-    def preprocess_output(self, outputs, conf_thres):
+    def preprocess_output(self, outputs):
         '''
         preprocess before feeding the output of this model to the next model
         # name: "angle_y_fc", shape: [1, 1] - Estimated yaw (in degrees)
         # name: "angle_p_fc", shape: [1, 1] - Estimated pitch (in degrees).
         # name: "angle_r_fc", shape: [1, 1] - Estimated roll (in degrees).
         '''
+        angle_y = outputs['angle_y_fc']
+        angle_p = outputs['angle_p_fc']
+        angle_r = outputs['angle_r_fc']
+
+        logger.debug(f'angle_y: {angle_y}')
+        logger.debug(f'angle_p: {angle_p}')
+        logger.debug(f'angle_r: {angle_r}')
+
+        return angle_y, angle_p, angle_r
 

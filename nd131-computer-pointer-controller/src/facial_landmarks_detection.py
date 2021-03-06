@@ -27,6 +27,7 @@ class Model_FacialLandmarksDetection:
         self.exec_network_ = None
         self.input_blob_ = []
         self.output_blob_ = []
+        self.load_model()
 
     def load_model(self):
         """
@@ -54,13 +55,18 @@ class Model_FacialLandmarksDetection:
         """ Return the shape of the input layer """
         return self.network_.inputs[self.input_blob_].shape
 
-    def predict(self, image, request_id=0):
+    def predict(self, cropped_face_frame):
         """
         This method is meant for running predictions on the input image.
         inference with an asynchronous request
         """
-        self.exec_network_.start_async(request_id=request_id,inputs={self.input_blob_: image})
-        return
+#        self.exec_network_.start_async(request_id=request_id,inputs={self.input_blob_: image})
+        preproc_frame = self.preprocess_input(cropped_face_frame)
+        self.exec_network_.infer(inputs={self.input_blob_: preproc_frame})
+        infer_res = self.get_output()
+        eyes_coord, cropped_left_eye, cropped_right_eye = self.preprocess_output(infer_res, cropped_face_frame)
+
+        return eyes_coord, cropped_left_eye, cropped_right_eye
 
     def wait(self):
         """ Wait for the request to be complete """
@@ -91,7 +97,7 @@ class Model_FacialLandmarksDetection:
         logger.debug(f'input [{image.shape}] -> converted_input [{converted_frame.shape}]')
         return converted_frame
 
-    def preprocess_output(self, outputs, conf_thres):
+    def preprocess_output(self, outputs, cropped_face_frame):
         '''
         preprocess before feeding the output of this model to the next model
         # shape: [1, 10, 1, 1]
@@ -109,6 +115,25 @@ class Model_FacialLandmarksDetection:
         logger.debug(f'  left_eye_y: {left_eye_y}')
         logger.debug(f'  right_eye_x: {right_eye_x}')
         logger.debug(f'  right_eye_y: {right_eye_y}')
-                
-        return [left_eye_x, left_eye_y, right_eye_x, right_eye_y]
+
+        cropped_face_h = cropped_face_frame.shape[0]
+        cropped_face_w = cropped_face_frame.shape[1]
+
+        left_eye_x_i = int(cropped_face_w * left_eye_x)
+        left_eye_y_i = int(cropped_face_h * left_eye_y)
+        right_eye_x_i = int(cropped_face_w * right_eye_x)
+        right_eye_y_i = int(cropped_face_h * right_eye_y)
+
+        eyes_coord = [left_eye_x_i, left_eye_y_i, right_eye_x_i, right_eye_y_i]
+
+        logger.debug(f'[valid eye bbox on frame]')
+        logger.debug(f'  left_eye x: {left_eye_x_i}')
+        logger.debug(f'  left_eye y: {left_eye_y_i}')
+        logger.debug(f'  right_eye x: {right_eye_x_i}')
+        logger.debug(f'  right_eye y: {right_eye_y_i}')
+
+        cropped_left_eye = cropped_face_frame[(left_eye_y_i - 20):(left_eye_y_i + 20), (left_eye_x_i - 20):(left_eye_x_i + 20)]
+        cropped_right_eye = cropped_face_frame[(right_eye_y_i - 20):(right_eye_y_i + 20), (right_eye_x_i - 20):(right_eye_x_i + 20)]
+
+        return eyes_coord, cropped_left_eye, cropped_right_eye
 

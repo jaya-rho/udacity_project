@@ -27,6 +27,7 @@ class Model_FaceDetection:
         self.exec_network_ = None
         self.input_blob_ = []
         self.output_blob_ = []
+        self.load_model()
 
     def load_model(self):
         '''
@@ -57,13 +58,16 @@ class Model_FaceDetection:
         """ Return the shape of the input layer """
         return self.network_.inputs[self.input_blob_].shape
 
-    def predict(self, image, request_id=0):
-        '''
-        TODO: You will need to complete this method.
-        This method is meant for running predictions on the input image.
-        '''
-        self.exec_network_.start_async(request_id=request_id,inputs={self.input_blob_: image})
-        return
+    def predict(self, frame, n_frame, prob_thres=0.3):
+        """This method is meant for running predictions on the input image"""
+        
+        preproc_frame = self.preprocess_input(frame)
+#        self.exec_network_.start_async(request_id=request_id,inputs={self.input_blob_: image})
+        self.exec_network_.infer(inputs={self.input_blob_: preproc_frame})
+        infer_res = self.get_output()
+        cropped_face_frame, face_coord = self.preprocess_output(infer_res, frame, n_frame, prob_thres)
+
+        return cropped_face_frame, face_coord
 
     def wait(self):
         """ Wait for the request to be complete """
@@ -98,7 +102,7 @@ class Model_FaceDetection:
         logger.debug(f'input [{image.shape}] -> converted_input [{converted_frame.shape}]')
         return converted_frame
 
-    def preprocess_output(self, outputs, conf_thres):
+    def preprocess_output(self, outputs, frame, n_frame, conf_thres):
         '''
         Before feeding the output of this model to the next model,
         you might have to preprocess the output. This function is where you can do that.
@@ -115,7 +119,29 @@ class Model_FaceDetection:
                 detected_bboxes.append(valid_bbox)
 
         top_detected_bbox = detected_bboxes[0]
-        #TODO: add assertion
+
+        # frame shape: (height, width, channel)
+        frame_h = frame.shape[0]
+        frame_w = frame.shape[1]
+
+        xmin_i = int(frame_w * valid_bbox[0])
+        xmax_i = int(frame_w * valid_bbox[2])
+        ymin_i = int(frame_h * valid_bbox[1])
+        ymax_i = int(frame_h * valid_bbox[3])
+
+        logger.debug(f'[valid face bbox on frame]')
+        logger.debug(f'  xmin: {xmin_i}')
+        logger.debug(f'  xmax: {xmax_i}')
+        logger.debug(f'  ymin: {ymin_i}')
+        logger.debug(f'  ymax: {ymax_i}')
+
+        cropped_face_frame = frame[ymin_i:ymax_i, xmin_i:xmax_i]
+
+        # for debug, crop a face part
+        cv2.imwrite(f"face_only_frame{n_frame}.jpg", cropped_face_frame)
+        # for debug, draw a bbox on face
+        cv2.rectangle(frame, (xmin_i, ymin_i), (xmax_i, ymax_i), (0, 0, 255), 3)
+        cv2.imwrite(f"face_frame{n_frame}.jpg", frame)
                 
-        return top_detected_bbox
+        return cropped_face_frame, [xmin_i, ymin_i, xmax_i, ymax_i]
 
