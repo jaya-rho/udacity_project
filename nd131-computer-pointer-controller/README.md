@@ -109,7 +109,7 @@ optional arguments:
 2. Model Size
 
     | Model Name | Precision | Model Size [MB] |
-    | --- | --: | ---: | ---: | ---: | ---: | 
+    | --- | --: | ---: | 
     | face-detection-adas-0001 | FP16 | 2.3 MB |
     |  | FP16-INT8 | 1.6 MB |
     |  | FP32 | 4.3 MB |
@@ -122,12 +122,12 @@ optional arguments:
     | gaze-estimation-adas-0002 | FP16 | 3.6 MB |
     |  | FP16-INT8 | 2.0 MB |
     |  | FP32 | 7.2 MB |
-    |||||
+    ||||
 
 3. Inference Time
 
     | Model Name | Precision | Average Inference Time [ms] | Maximum Inference Time [ms] |
-    | --- | --: | ---: | ---: | ---: | ---: | 
+    | --- | --: | ---: | ---: |
     | face-detection-adas-0001 | FP16 | 21.569 ms | 49.784 ms |
     |  | FP16-INT8 | 21.999 ms | 49.585 ms |
     |  | FP32 | 21.573 ms | 49.685 ms |
@@ -145,7 +145,7 @@ optional arguments:
 3. Model Load Time
 
     | Model Name | Precision | Model Load Time [ms] |
-    | --- | --: | ---: | ---: | ---: | ---: | 
+    | --- | --: | ---: |
     | face-detection-adas-0001 | FP16 | 0.209 ms |
     |  | FP16-INT8 | 0.258 ms |
     |  | FP32| 0.205 ms |
@@ -158,7 +158,7 @@ optional arguments:
     | gaze-estimation-adas-0002 | FP16 | 0.074 ms |
     |  | FP16-INT8 | 0.154 ms |
     |  | FP32 | 0.115 ms |
-    |||||
+    ||||
 
 ## Results
 For this project, we can use models in three precisions: FP32, FP16, and FP32-INT8. We compared the performance in three terms, i) model size, ii) inference time, and iii) load time for each precision of the four models.
