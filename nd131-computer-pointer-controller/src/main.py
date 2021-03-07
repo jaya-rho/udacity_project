@@ -147,10 +147,18 @@ def main():
             logger.debug(f'Move mouse cursor to [x:{mouse_coord[0]}, y:{mouse_coord[1]}]')
 
     logger.info(f'model inference time [ms]')
-    logger.info(f'   face detection model       : {sum(infer_times_d["fd"])/len(infer_times_d["fd"])*1000:6.3f} [ms]')
-    logger.info(f'   facial landmarks model     : {sum(infer_times_d["fl"])/len(infer_times_d["fl"])*1000:6.3f} [ms]')
-    logger.info(f'   head pose estimation model : {sum(infer_times_d["hp"])/len(infer_times_d["hp"])*1000:6.3f} [ms]')
-    logger.info(f'   gaze estimation model      : {sum(infer_times_d["ge"])/len(infer_times_d["ge"])*1000:6.3f} [ms]')
+    logger.info(f'   face detection model')
+    logger.info(f'         average : {sum(infer_times_d["fd"])/len(infer_times_d["fd"])*1000:6.3f} [ms]')
+    logger.info(f'         maximum : {max(infer_times_d["fd"])*1000:6.3f} [ms]')
+    logger.info(f'   facial landmarks model')
+    logger.info(f'         average : {sum(infer_times_d["fl"])/len(infer_times_d["fl"])*1000:6.3f} [ms]')
+    logger.info(f'         maximum : {max(infer_times_d["fl"])*1000:6.3f} [ms]')
+    logger.info(f'   head pose estimation model')
+    logger.info(f'         average : {sum(infer_times_d["hp"])/len(infer_times_d["hp"])*1000:6.3f} [ms]')
+    logger.info(f'         maximum : {max(infer_times_d["hp"])*1000:6.3f} [ms]')
+    logger.info(f'   gaze estimation model')
+    logger.info(f'         average : {sum(infer_times_d["ge"])/len(infer_times_d["ge"])*1000:6.3f} [ms]')
+    logger.info(f'         maximum : {max(infer_times_d["ge"])*1000:6.3f} [ms]')
 
     # release the resources
     input_feeder.close()
