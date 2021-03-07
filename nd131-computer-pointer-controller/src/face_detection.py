@@ -118,6 +118,10 @@ class Model_FaceDetection:
                 logger.debug(f'append bbox [{bbox[3]},{bbox[4]},{bbox[5]},{bbox[6]}]')
                 detected_bboxes.append(valid_bbox)
 
+        if len(detected_bboxes) == 0:
+            # if no any face is found
+            return None, None
+
         top_detected_bbox = detected_bboxes[0]
 
         # frame shape: (height, width, channel)
@@ -137,11 +141,11 @@ class Model_FaceDetection:
 
         cropped_face_frame = frame[ymin_i:ymax_i, xmin_i:xmax_i]
 
-        # for debug, crop a face part
-        cv2.imwrite(f"face_only_frame{n_frame}.jpg", cropped_face_frame)
-        # for debug, draw a bbox on face
-        cv2.rectangle(frame, (xmin_i, ymin_i), (xmax_i, ymax_i), (0, 0, 255), 3)
-        cv2.imwrite(f"face_frame{n_frame}.jpg", frame)
+#        # for debug, crop a face part
+#        cv2.imwrite(f"face_only_frame{n_frame}.jpg", cropped_face_frame)
+#        # for debug, draw a bbox on face
+#        cv2.rectangle(frame, (xmin_i, ymin_i), (xmax_i, ymax_i), (0, 0, 255), 3)
+#        cv2.imwrite(f"face_frame{n_frame}.jpg", frame)
                 
         return cropped_face_frame, [xmin_i, ymin_i, xmax_i, ymax_i]
 

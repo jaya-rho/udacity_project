@@ -67,6 +67,7 @@ def main():
     net_fl = Model_FacialLandmarksDetection(args.facial_land, args.device, args.cpu_extension) 
     net_hp = Model_HeadPoseEstimation(args.head_pose, args.device, args.cpu_extension) 
     net_ge = Model_GazeEstimation(args.gaze_est, args.device, args.cpu_extension) 
+
     # visualier
     vis = Visualizer()
 
@@ -78,40 +79,49 @@ def main():
         if not ret:
             break
 
+        key_pressed = cv2.waitKey(60)
+
         logger.debug(f'frame #{frame_num:3d}: {frame.shape}')
         frame_num += 1
 
-        #############################################
-        # step1: inference for face detection       #
-        #############################################
+        # inference for face detection
         cropped_face_frame, face_coord = net_fd.predict(frame, frame_num)
-        vis_frame = vis.draw_face_bbox(frame, face_coord, frame_num)
 
-        ####################################################
-        # step2: inference for facial landmarks detection  #
-        ####################################################
+        # if no face has been detected, skip the frame
+        if cropped_face_frame is None or face_coord is None:
+            logger.warning(f'No face has been founded on frame #{frame_num}. Neither of cropped_face_frame nor face_coord is None')
+            continue
+
+        vis.draw_face_bbox(frame, face_coord, frame_num)
+
+        # inference for facial landmarks detection
         eyes_coord, cropped_left_eye, cropped_right_eye = net_fl.predict(cropped_face_frame)
-        vis.draw_eye_bbox(cropped_face_frame, eyes_coord, frame_num)
+        vis_eye_gaze = vis.draw_eye_bbox(cropped_face_frame, eyes_coord, frame_num)
 
-        #############################################
-        # step3: inference for head pose estimation #
-        #############################################
+        # inference for head pose estimation
         angle_y, angle_p, angle_r = net_hp.predict(cropped_face_frame)
-
-        #############################################
-        # step4: inference for gaze estimation      #
-        #############################################
         hp_angle = [angle_y, angle_p, angle_r]
+
+        # inference for gaze estimation
         mouse_coord, gaze_vector = net_ge.predict(cropped_left_eye, cropped_right_eye, hp_angle)
-#        vis.draw_gaze(cropped_face_frame, gaze_vector, cropped_left_eye, cropped_right_eye, eyes_coord)
+        vis.draw_gaze(cropped_face_frame, gaze_vector, cropped_left_eye, cropped_right_eye, eyes_coord, frame_num)
 
-        # show an input image
-        cv2.imshow('Visualize', vis_frame)
+        if key_pressed == 27:
+            break
 
-        # set speed
-        if frame_num % 5 == 0:
+        # show the results
+        cv2.startWindowThread()
+        cv2.namedWindow("Visualize")
+        cv2.imshow('Visualize', frame)
+
+        # control the mouse
+        if (frame_num % 5) == 0:
             mc.move(mouse_coord[0], mouse_coord[1])
+            logger.debug(f'Move mouse cursor to [x:{mouse_coord[0]}, y:{mouse_coord[1]}]')
 
+    # release the resources
+    input_feeder.close()
+    cv2.destroyAllWindows
        
 if __name__ == '__main__':
     main()

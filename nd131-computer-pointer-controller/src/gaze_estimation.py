@@ -108,7 +108,6 @@ class Model_GazeEstimation:
         # input #2: right_eye_image and the shape [1x3x60x60]
         '''
         input_shape_d = self.get_input_shape()
-        print(f' *** {input_name} shape: {input_shape_d[input_name]}')
         [n, c, h, w] = input_shape_d[input_name]
 
         converted_frame = cv2.resize(image, (w, h), interpolation = cv2.INTER_AREA)
@@ -126,8 +125,6 @@ class Model_GazeEstimation:
         preprocess before feeding the output of this model to the next model
         # output: gaze_vector with the shape: [1, 3]
         '''
-        print(f'outputs: {outputs}')
-        print(f'head pose angle: {hp_angle}')
         gaze_vec = outputs[0]
         angle_r_fc = hp_angle[2]
         cosine = math.cos(angle_r_fc * math.pi / 180.0)
