@@ -107,6 +107,7 @@ optional arguments:
     - 16 GB 3733 MHz LPDDR4X
 
 2. Model Size
+
     | Model Name | Precision | Model Size [MB] |
     | --- | --: | ---: | ---: | ---: | ---: | 
     | face-detection-adas-0001 | FP16 | 2.3 MB |
@@ -124,6 +125,7 @@ optional arguments:
     |||||
 
 3. Inference Time
+
     | Model Name | Precision | Average Inference Time [ms] | Maximum Inference Time [ms] |
     | --- | --: | ---: | ---: | ---: | ---: | 
     | face-detection-adas-0001 | FP16 | 21.569 ms | 49.784 ms |
@@ -141,6 +143,7 @@ optional arguments:
     |||||
 
 3. Model Load Time
+
     | Model Name | Precision | Model Load Time [ms] |
     | --- | --: | ---: | ---: | ---: | ---: | 
     | face-detection-adas-0001 | FP16 | 0.209 ms |
