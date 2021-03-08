@@ -43,6 +43,37 @@ The below four models are required to implement the mouse pointer controller app
         ```
         $ python3 /opt/intel/openvino/deployment_tools/tools/model_downloader/downloader.py --name "gaze-estimation-adas-0002" -o .
         ```
+### iii) Directory Structure
+```
+├── bin
+│   └── demo.mp4
+├── README.md
+├── requirements.txt
+└── src
+    ├── face_detection.py
+    ├── facial_landmarks_detection.py
+    ├── gaze_estimation.py
+    ├── head_pose_estimation.py
+    ├── input_feeder.py
+    ├── logger.py
+    ├── logger.pyc
+    ├── main.py
+    ├── mouse_controller.py
+    ├── output_vis
+    ├── __pycache__
+    │   ├── face_detection.cpython-36.pyc
+    │   ├── facial_landmarks_detection.cpython-36.pyc
+    │   ├── gaze_estimation.cpython-36.pyc
+    │   ├── head_pose_estimation.cpython-36.pyc
+    │   ├── input_feeder.cpython-36.pyc
+    │   ├── logger.cpython-36.pyc
+    │   ├── mouse_controller.cpython-36.pyc
+    │   └── visualizer.cpython-36.pyc
+    ├── run.sh
+    └── visualizer.py
+
+4 directories, 22 files
+```
 
 ## Demo
 1. Install the required python packages
