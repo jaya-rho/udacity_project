@@ -38,7 +38,7 @@ def build_argparser():
                              "CPU, GPU, FPGA or MYRIAD is acceptable. Sample "
                              "will look for a suitable plugin for device "
                              "specified (CPU by default)")
-    parser.add_argument('--log_level', type=str, choices=['debug', 'info', 'warning', 'error', 'critical'])
+    parser.add_argument('--log_level', type=str, choices=['debug', 'info', 'warning', 'error', 'critical'], default='info')
 
     return parser
 
