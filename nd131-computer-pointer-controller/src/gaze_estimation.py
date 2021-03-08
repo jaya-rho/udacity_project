@@ -6,11 +6,12 @@ import cv2
 import math
 
 from openvino.inference_engine import IENetwork, IECore
+from base_model import Model
 
 from logger import Logger
 logger = Logger.get_logger('logger')
 
-class Model_GazeEstimation:
+class Model_GazeEstimation(Model):
     '''
     Class for the Gaze Estimation Model.
     https://docs.openvinotoolkit.org/latest/omz_models_intel_gaze_estimation_adas_0002_description_gaze_estimation_adas_0002.html
@@ -19,16 +20,7 @@ class Model_GazeEstimation:
         """
         class initialization
         """
-        self.bin_model_ = model_name + '.bin'
-        self.xml_model_ = model_name + '.xml'
-        self.device_ = device
-        self.extensions_ = extensions
-        self.infer_engine_ = None
-        self.network_ = None
-        self.exec_network_ = None
-        self.input_blob_ = []
-        self.output_blob_ = []
-        self.load_model()
+        super().__init__(model_name, device, extensions) # initialize the base class
 
     def load_model(self):
         """
@@ -86,20 +78,6 @@ class Model_GazeEstimation:
         mouse_coords, gaze_vec = self.preprocess_output(infer_result, hp_angle)
 
         return mouse_coords, gaze_vec
-
-    def wait(self):
-        """ Wait for the request to be complete """
-        infer_status = self.exec_network_.requests[0].wait(-1)
-
-        return infer_status
-
-    def get_output(self):
-        """ Extract and return the output results """
-        infer_output = self.exec_network_.requests[0].outputs[self.output_blob_]
-        logger.debug('  - extracting DNN output from blob (%s)' % self.output_blob_)
-        logger.debug('  - output shape: {}'.format(infer_output.shape))
-
-        return infer_output
 
     def preprocess_input(self, image, input_name):
         '''

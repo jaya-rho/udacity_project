@@ -5,11 +5,12 @@ This has been provided just to give you an idea of how to structure your model c
 import cv2
 
 from openvino.inference_engine import IENetwork, IECore
+from base_model import Model
 
 from logger import Logger
 logger = Logger.get_logger('logger')
 
-class Model_FacialLandmarksDetection:
+class Model_FacialLandmarksDetection(Model):
     """
     Class for the Facial Landmarks Detection Model.
     https://docs.openvinotoolkit.org/latest/_models_intel_landmarks_regression_retail_0009_description_landmarks_regression_retail_0009.html
@@ -18,42 +19,7 @@ class Model_FacialLandmarksDetection:
         """
         class initialization
         """
-        self.bin_model_ = model_name + '.bin'
-        self.xml_model_ = model_name + '.xml'
-        self.device_ = device
-        self.extensions_ = extensions
-        self.infer_engine_ = None
-        self.network_ = None
-        self.exec_network_ = None
-        self.input_blob_ = []
-        self.output_blob_ = []
-        self.load_model()
-
-    def load_model(self):
-        """
-        load the model to the specified device by the user
-        """
-        # Initialize the Inference Engine
-        self.infer_engine_ = IECore()
-
-        if self.extensions_ and "CPU" in self.device_:
-            self.infer_engine_.add_extension(self.extensions_, self.device_)
-
-        # Read the IR as a IENetwork
-        self.network_ = self.infer_engine_.read_network(model=self.xml_model_, weights=self.bin_model_)
-        # Return the loaded inference plugin ###
-        self.exec_network_ = self.infer_engine_.load_network(self.network_, self.device_)
-
-        self.input_blob_ = next(iter(self.network_.inputs))
-        self.output_blob_ = next(iter(self.network_.outputs))
-
-        logger.debug('* blob info *')
-        logger.debug(' - input : %s' % self.input_blob_)
-        logger.debug(' - output: %s' % self.output_blob_)
-
-    def get_input_shape(self):
-        """ Return the shape of the input layer """
-        return self.network_.inputs[self.input_blob_].shape
+        super().__init__(model_name, device, extensions) # initialize the base class
 
     def predict(self, cropped_face_frame):
         """
@@ -67,18 +33,6 @@ class Model_FacialLandmarksDetection:
         eyes_coord, cropped_left_eye, cropped_right_eye = self.preprocess_output(infer_res, cropped_face_frame)
 
         return eyes_coord, cropped_left_eye, cropped_right_eye
-
-    def wait(self):
-        """ Wait for the request to be complete """
-        infer_status = self.exec_network_.requests[0].wait(-1)
-        return infer_status
-
-    def get_output(self):
-        """ Extract and return the output results """
-        infer_output = self.exec_network_.requests[0].outputs[self.output_blob_]
-        logger.debug('  - extracting DNN output from blob (%s)' % self.output_blob_)
-        logger.debug('  - output shape: {}'.format(infer_output.shape))
-        return infer_output
 
     def preprocess_input(self, image):
         '''

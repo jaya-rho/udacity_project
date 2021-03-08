@@ -5,11 +5,12 @@ This has been provided just to give you an idea of how to structure your model c
 import cv2
 
 from openvino.inference_engine import IENetwork, IECore
+from base_model import Model
 
 from logger import Logger
 logger = Logger.get_logger('logger')
 
-class Model_HeadPoseEstimation:
+class Model_HeadPoseEstimation(Model):
     '''
     Class for the Head Post Estimation Model.
     https://docs.openvinotoolkit.org/latest/omz_models_intel_head_pose_estimation_adas_0001_description_head_pose_estimation_adas_0001.html
@@ -18,16 +19,7 @@ class Model_HeadPoseEstimation:
         """
         class initialization
         """
-        self.bin_model_ = model_name + '.bin'
-        self.xml_model_ = model_name + '.xml'
-        self.device_ = device
-        self.extensions_ = extensions
-        self.infer_engine_ = None
-        self.network_ = None
-        self.exec_network_ = None
-        self.input_blob_ = []
-        self.output_blob_ = []
-        self.load_model()
+        super().__init__(model_name, device, extensions) # initialize the base class
 
     def load_model(self):
         """
@@ -51,10 +43,6 @@ class Model_HeadPoseEstimation:
         logger.debug(' - input : %s' % self.input_blob_)
         logger.debug(' - output: %s' % self.output_blob_)
 
-    def get_input_shape(self):
-        """ Return the shape of the input layer """
-        return self.network_.inputs[self.input_blob_].shape
-
     def predict(self, frame):
         """
         This method is meant for running predictions on the input image.
@@ -67,12 +55,6 @@ class Model_HeadPoseEstimation:
         angle_y, angle_p, angle_r = self.preprocess_output(infer_res)
 
         return angle_y, angle_p, angle_r
-
-    def wait(self):
-        """ Wait for the request to be complete """
-        infer_status = self.exec_network_.requests[0].wait(-1)
-
-        return infer_status
 
     def get_output(self):
         """ Extract and return the output results as a dictionary """
