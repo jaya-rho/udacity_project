@@ -1,6 +1,6 @@
 # Computer Pointer Controller
 
-In this project, we build an application to control a mouse pointer by the gaze of user's eyes. As shown in the below flow chart, first, we need to detect a face from the input image. With the cropped face iamge, the left and right eyes can be detected by a landmark detection model, and the head pose angles can be estimated from a head pose estimation model. With the results from the previous two models, a gaze estimation model calculates the direction of mouse pointer movement.
+In this project, we build an application to control a mouse pointer in the appropriate distance and direction by the gaze of user's eyes. As shown in the below flow chart, first, we need to detect a face from the input image. With the cropped face iamge, the left and right eyes can be detected by a landmark detection model, and the head pose angles can be estimated from a head pose estimation model. With the results from the previous two models, a gaze estimation model calculates the direction of mouse pointer movement.
 
 ![entire_flow](https://video.udacity-data.com/topher/2020/April/5e923081_pipeline/pipeline.png)
 
