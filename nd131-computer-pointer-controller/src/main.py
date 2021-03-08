@@ -38,6 +38,7 @@ def build_argparser():
                              "CPU, GPU, FPGA or MYRIAD is acceptable. Sample "
                              "will look for a suitable plugin for device "
                              "specified (CPU by default)")
+    parser.add_argument('--visualize', action='store_true')
     parser.add_argument('--log_level', type=str, choices=['debug', 'info', 'warning', 'error', 'critical'], default='info')
 
     return parser
@@ -57,6 +58,7 @@ def main():
     logger.info(f'  - model #3: {args.head_pose}')
     logger.info(f'  - model #4: {args.gaze_est}')
     logger.info(f'  - input: {args.input_type} / {args.input_path}')
+    logger.info(f'  - visualize: {args.visualize}')
    
     # load the input data
     if args.input_type == "camera":
@@ -94,8 +96,9 @@ def main():
     logger.info(f'   gaze estimation model      : {load_ge_end - load_ge_start:6.3f} [ms]')
     logger.info(f'   TOTAL                      : {load_ge_end - load_fd_start:6.3f} [ms]')
 
-    # visualier
-    vis = Visualizer()
+    # create the visualier object
+    if args.visualize:
+        vis = Visualizer()
 
     # read the input data
     frame_num = 0
@@ -122,13 +125,15 @@ def main():
             logger.warning(f'No face has been founded on frame #{frame_num}. Neither of cropped_face_frame nor face_coord is None')
             continue
 
-        vis.draw_face_bbox(frame, face_coord, frame_num)
+        if args.visualize:
+            vis.draw_face_bbox(frame, face_coord, frame_num)
 
         # inference for facial landmarks detection
         infer_fl_start = time.time()
         eyes_coord, cropped_left_eye, cropped_right_eye = net_fl.predict(cropped_face_frame)
         infer_times_d['fl'].append(time.time() - infer_fl_start)
-        vis_eye_gaze = vis.draw_eye_bbox(cropped_face_frame, eyes_coord, frame_num)
+        if args.visualize:
+            vis_eye_gaze = vis.draw_eye_bbox(cropped_face_frame, eyes_coord, frame_num)
 
         # inference for head pose estimation
         infer_hp_start = time.time()
@@ -140,15 +145,17 @@ def main():
         infer_ge_start = time.time()
         mouse_coord, gaze_vector = net_ge.predict(cropped_left_eye, cropped_right_eye, hp_angle)
         infer_times_d['ge'].append(time.time() - infer_ge_start)
-        vis.draw_gaze(cropped_face_frame, gaze_vector, cropped_left_eye, cropped_right_eye, eyes_coord, frame_num)
+        if args.visualize:
+            vis.draw_gaze(cropped_face_frame, gaze_vector, cropped_left_eye, cropped_right_eye, eyes_coord, frame_num)
 
         if key_pressed == 27:
             break
 
         # show the results
-        cv2.startWindowThread()
-        cv2.namedWindow("Visualize")
-        cv2.imshow('Visualize', frame)
+        if args.visualize:
+            cv2.startWindowThread()
+            cv2.namedWindow("Visualize")
+            cv2.imshow('Visualize', frame)
 
         # control the mouse
         if (frame_num % 5) == 0:
