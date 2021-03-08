@@ -25,8 +25,9 @@ def build_argparser():
     parser.add_argument('facial_land', type=str, help='model path for facial_landmarks_model')
     parser.add_argument('head_pose', type=str, help='model path for head_pose_model')
     parser.add_argument('gaze_est', type=str, help='model path for gaze_estimation_model')
-    parser.add_argument("-i", "--input", required=True, type=str,
-                        help="Path to image or video file")
+    parser.add_argument("-i", "--input_type", required=True, type=str, choices=['video', 'image', 'camera'], default='video',
+                        help="Specify the input data type")
+    parser.add_argument("-ip", "--input_path", required=True, type=str, help="Specifiy the input data path")
     parser.add_argument("-l", "--cpu_extension", required=False, type=str,
                         default=None,
                         help="MKLDNN (CPU)-targeted custom layers."
@@ -55,10 +56,18 @@ def main():
     logger.info(f'  - model #2: {args.facial_land}')
     logger.info(f'  - model #3: {args.head_pose}')
     logger.info(f'  - model #4: {args.gaze_est}')
-    logger.info(f'  - input: {args.input}')
+    logger.info(f'  - input: {args.input_type} / {args.input_path}')
    
-    # load the input video
-    input_feeder = InputFeeder("video", args.input)
+    # load the input data
+    if args.input_type == "camera":
+        input_feeder = InputFeeder("cam")
+    elif args.input_type == "video":
+        input_feeder = InputFeeder("video", args.input_path)
+    elif args.input_type == "image":
+        input_feeder = InputFeeder("image", args.input_path)
+    else:
+        assert False, f'Input data type must be one of [cam, video, image]. You selected the type: {args.input_type}'
+
     input_feeder.load_data()
 
     # mouse controller
